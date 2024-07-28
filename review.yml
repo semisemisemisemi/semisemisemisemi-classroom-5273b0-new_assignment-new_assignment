@@ -1,0 +1,47 @@
+name: Code Review From ChatGPT
+
+permissions:
+  contents: read
+  pull-requests: write
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  code-review:
+    runs-on: ubuntu-latest
+
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nodejs npm
+        npm install
+        npm install dotenv
+
+    - name: Check environment variable
+      run: echo $OPENAI_API_KEY
+
+    - name: Analyze with ChatGPT
+      run: |
+        echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" > .env
+        node analyze_results.js
+
+    - name: Upload feedback
+      uses: actions/upload-artifact@v2
+      with:
+        name: feedback
+        path: feedback.log
+
+    - name: Comment on PR with feedback
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        path: feedback.log
